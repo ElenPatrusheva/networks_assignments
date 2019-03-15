@@ -16,7 +16,7 @@
 struct node{
 	int is_active;
 	int ip;//socket?
-	int files[100];//has files with file descriptors
+	char * file[100];//what format sould i use, I want to have just file names?
 };
 
 struct ping_response{
@@ -29,13 +29,26 @@ struct node network_nodes[100];
 
 
 void client (){
+	char file_name[FILE_NAME_SIZE];
+	printf("What file do you want to get?");
+	scanf(&file_name);
+	find_such_node(file_name);
+	/*
+	for (int i = 0; i < CLIENTS_NUMBER; i++){
+		for (int j = 0; i < 100;  i++){
+			if (sttcmp(network_nodes[i]->files[j], file_name) == 0){//think more, what if system is not ready
+
+			}
+
+		}
+	}*/
 
 }
 /*
 changes the node info according to the ping success
 */
 void ping (struct node node){
-	
+
 }
 void *server (void *_thread_data){
 	while(1){
@@ -47,6 +60,19 @@ void *server (void *_thread_data){
 
 int main(){
 	char command [BUFFER_SIZE];
-
+	return 0;
+	while (1){
+		printf("Enter your command: ");
+		scanf("%s", command);
+		if (strcmp(command, "request_file") == 0) {
+			client();
+		}
+		else if (strcmp(command, "exit") == 0){
+			terminate_server(thread);
+		}
+		else {
+			printf("You entered incorrect command.\n");
+		}
+	}
 	return 0;
 }
