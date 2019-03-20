@@ -108,6 +108,86 @@ void client (){
 	}
 }
 
+void client_test (){
+
+	while (1){
+		printf("Enter your command: ");
+		char command [BUFFER_SIZE];
+
+		scanf("%s", command);
+		if (strcmp(command, "ping") == 0 ){
+			int socket_fd;
+
+			char buffer[BUFFER_SIZE];
+
+		    struct sockaddr_in server_addr;
+
+		    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+			    
+		    memset(&server_addr, 0, sizeof(struct sockaddr_in));
+		    server_addr.sin_family = AF_INET;
+		    server_addr.sin_addr.s_addr = inet_addr("192.168.2.2");
+		    server_addr.sin_port = htons(7568);
+		    if(connect(socket_fd, (struct sockaddr *)&server_addr, sizeof(struct sockaddr_in)) != 0){
+		    	printf("Connection_failed");
+		    }
+		    send(socket_fd, command, sizeof(command), 0);
+		    recv(socket_fd, buffer, BUFFER_SIZE - 1, 0);
+		}
+		/*
+		if (strcmp(command, "file_transfer") == 0) {
+			int exists = 0;
+			for (int i = 0; i < known_nodes_number; i++){
+				int socket_fd;
+
+			    char buffer[BUFFER_SIZE];
+
+			    struct sockaddr_in server_addr;
+
+			    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+			    
+			    memset(&server_addr, 0, sizeof(struct sockaddr_in));
+			    server_addr.sin_family = AF_INET;
+			    server_addr.sin_addr.s_addr = inet_addr(network_nodes[i].ip);
+			    server_addr.sin_port = htons(network_nodes[i].port);
+
+			    if(connect(socket_fd, (struct sockaddr *)&server_addr, sizeof(struct sockaddr_in)) != 0){
+			    	printf("Connection_failed");
+			    }
+			    send(socket_fd, command, sizeof(command), 0);
+
+			    recv(socket_fd, buffer, BUFFER_SIZE - 1, 0);
+			    if (strcmp(buffer, "ok") == 0){
+			    	printf("Enter file name: ");
+			    	char file_name[FILE_NAME_SIZE];
+			    	scanf("%s", file_name);
+			    	send(socket_fd, file_name, sizeof(file_name), 0);
+			    	int words;
+			    	recv(socket_fd, &words, sizeof(words), 0);
+			    	if (words >= 0){
+			    		exists = 1;
+			    		char word[20];
+			    		for (int i = 0; i < words; i++){
+			    			recv(socket_fd, word, sizeof(word), 0);
+			    			printf("%s", word);
+			    		}
+			    	printf("done\n");
+			    	break;
+			    	}
+			    }
+			}
+			if (exists == 0){
+				printf("no such_file\n");
+			}
+		    
+		}
+		else if (strcmp(command, "exit") == 0){
+			return;
+		}*/
+	}
+}
+
+
 void ping(){
 	/*
 
@@ -189,6 +269,48 @@ void *process_client_connection(void *request_data){
 		}
 	} 
 }
+void *process_client_connection_test(void *request_data){
+	char buffer[BUFFER_SIZE];
+	struct client_conn_data *client_data = (struct client_conn_data *) request_data;
+	if (recv(client_data->connection_socket_fd, buffer, BUFFER_SIZE - 1, 0) == -1){
+		printf("Recv from client failed");
+	}
+	if (strcmp(buffer, "ping") == 0){
+		//write his data
+		printf("kek");
+		send(client_data->connection_socket_fd, "ok", 3, 0);
+		return 0;	
+	}
+	/*
+	else if (strcmp(buffer, "file_transfer") == 0){//file transfer initialization
+
+		send(client_data->connection_socket_fd, "ok", 3, 0);
+		if (recv(client_data->connection_socket_fd, buffer, BUFFER_SIZE - 1, 0) == -1){//название файла
+			printf("Recv from client failed");
+		}
+
+		if (have_file(buffer)){
+
+
+			int words = numb_of_words(buffer);
+			send(client_data->connection_socket_fd, &words, sizeof(words), 0);
+
+			FILE *fptr = fopen(buffer, "r");
+			char word[100];
+    		while (fscanf(fptr, " %1023s", word) == 1) {
+        		send(client_data->connection_socket_fd, word, sizeof(word), 0);
+    		}
+			return 0;
+
+
+		}
+		else {
+			int minus_odin = -1;
+			send(client_data->connection_socket_fd, &minus_odin, sizeof(int), 0);
+			return 0;
+		}
+	}*/
+}
 
 
 
@@ -246,7 +368,7 @@ void *listener (void *_thread_data){
 
         pthread_mutex_lock(&threads_lock);
         thread_is_free[thread_number] = 0;
-        pthread_create(&(threads[thread_number]), NULL, process_client_connection, (void *)request_data);
+        pthread_create(&(threads[thread_number]), NULL, process_client_connection_test, (void *)request_data);
         pthread_mutex_unlock(&threads_lock);
     }
 
@@ -274,7 +396,7 @@ int main(int argc, char **argv){
 //	pthread_create(&ping_thread, NULL, pinger, (void *)_host);
 	pthread_create(&listen_thread, NULL, listener, (void *)_host);
 
-	client();
+	client_test();
 
 //	pthread_cancel(ping_thread);
 	pthread_cancel(listen_thread);

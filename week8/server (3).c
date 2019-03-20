@@ -14,8 +14,8 @@
 #include <pthread.h>
 #include <errno.h>
 
-#define MAX_CLIENTS 20  // Max amount of clients that can communicate with the server at the same time
-#define MAX_QUEUE 100   // Max amount of requests that can be pending for the listen call
+#define MAX_CLIENTS_NUMBER 20  // Max amount of clients that can communicate with the server at the same time
+#define MAX_QUEUE_SIZE 100   // Max amount of requests that can be pending for the listen call
 #define BUF_SIZE 1024
 
 int in_progress;
