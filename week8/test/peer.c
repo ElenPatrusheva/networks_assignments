@@ -11,9 +11,10 @@
 #define QUEUE_SIZE 30
 #define BUFFER_SIZE 1024
 #define MAX 80 
-#define PORT 8080 
+#define SERV_PORT 8080 
 #define SA struct sockaddr 
 #define IP_LENGHT 15
+#define CLIENTS_NUMBER 30
 
 
 struct client_conn_data {
@@ -27,11 +28,14 @@ struct host {
     unsigned long port;
 };
 
-void *func(void * _sockfd) 
+//for threads
+pthread_t client_connection_threads[CLIENTS_NUMBER];
+int available_threads[CLIENTS_NUMBER];
+pthread_mutex_t threads_lock;
+
+void *func_serv(void * _sockfd) 
 {
 	int sockfd = (int)_sockfd;
-    printf("%d", sockfd);
-
     char buff[MAX]; 
     int n; 
     // infinite loop for chat 
@@ -58,13 +62,17 @@ void *func(void * _sockfd)
         } 
     } 
 } 
-
+/*
+it works!!
+*/
 void * listener(void *current_host_data){
 	int sockfd, connfd, len; 
     struct sockaddr_in servaddr, client; 
     struct host * current_host;
     current_host = (struct host *)current_host_data;
-
+    for (int i = 0; i < CLIENTS_NUMBER; i++){
+    	available_threads[i] = 1;
+    }
     sockfd = socket(AF_INET, SOCK_STREAM, 0); 
     if (sockfd == -1) { 
         printf("socket creation failed...\n"); 
@@ -90,8 +98,8 @@ void * listener(void *current_host_data){
         printf("Socket successfully binded..\n"); 
     }
   
-    // Now server is ready to listen and verification 
-    if ((listen(sockfd, 5)) != 0) { 
+    // Now server is ready to listen and verificate
+    if ((listen(sockfd, QUEUE_SIZE)) != 0) { 
         printf("Listen failed...\n"); 
         exit(0); 
     } 
@@ -116,9 +124,14 @@ void * listener(void *current_host_data){
 	    client_data->connection_socket_fd = connfd;
 	    client_data->client_addr = client;
 	    client_data->client_addr_len = len;
-	    pthread_t client_process_thread;
-	    printf("%d", sockfd);
-	    pthread_create(&client_process_thread, NULL, func, (void *)connfd);
+	    int available_thread = 0;
+	    while(available_threads[available_thread] != 1){
+	    	available_thread++;
+	    }
+        pthread_mutex_lock(&threads_lock);
+        available_threads[available_thread] = 0;
+	    pthread_create(&available_threads[available_thread], NULL, func_serv, (void *)connfd);
+        pthread_mutex_unlock(&threads_lock);
 	}
 }
 
@@ -127,6 +140,62 @@ void * listener(void *current_host_data){
 void * process_client_connection(){
 
 }
+
+void func_client(int sockfd) 
+{ 
+    char buff[MAX]; 
+    int n; 
+    for (;;) { 
+        bzero(buff, sizeof(buff)); 
+        printf("Enter the string : "); 
+        n = 0; 
+        while ((buff[n++] = getchar()) != '\n') 
+            ; 
+        write(sockfd, buff, sizeof(buff)); 
+        bzero(buff, sizeof(buff)); 
+        read(sockfd, buff, sizeof(buff)); 
+        printf("From Server : %s", buff); 
+        if ((strncmp(buff, "exit", 4)) == 0) { 
+            printf("Client Exit...\n"); 
+            break; 
+        } 
+    } 
+} 
+
+void client(){
+	int sockfd, connfd; 
+    struct sockaddr_in servaddr, cli; 
+  
+    // socket create and varification 
+    sockfd = socket(AF_INET, SOCK_STREAM, 0); 
+    if (sockfd == -1) { 
+        printf("socket creation failed...\n"); 
+        exit(0); 
+    } 
+    else
+        printf("Socket successfully created..\n"); 
+    bzero(&servaddr, sizeof(servaddr)); 
+  
+    // assign IP, PORT 
+    servaddr.sin_family = AF_INET; 
+    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
+    servaddr.sin_port = htons(SERV_PORT); 
+  
+    // connect the client socket to server socket 
+    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) { 
+        printf("connection with the server failed...\n"); 
+        exit(0); 
+    } 
+    else
+        printf("connected to the server..\n"); 
+  
+    // function for chat 
+    func_client(sockfd); 
+  
+    // close the socket 
+    close(sockfd); 
+}
+
 int main(int argc, char **argv){
 	if (argc != 3){
 		printf("Incorrect number of arguments, you should enter ip and port number.\n");
@@ -140,10 +209,15 @@ int main(int argc, char **argv){
 
 	pthread_t listen_thread;
 	pthread_create(&listen_thread, NULL, listener, (void *)current_host);
+	printf("Do you want to work like a client?\n");
+	char ansver[4];
+	scanf("%s", ansver);
+	if (strcmp(ansver, "yes") == 0){
+		client();
+	}
 	while(1){
 
 	}
-	//client();
 	pthread_cancel(listen_thread);
 	return 0;
 }
